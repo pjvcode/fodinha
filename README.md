@@ -252,3 +252,46 @@ A simulação afirma, a cada passo, a integridade do baralho, a contagem de cart
 na mão de cada jogador, a presença ou ausência do vira, a soma das vazas e o
 fechamento da mão. Vale rodar também com `--players 2`, `5` e `8`: são as mesas
 em que o baralho acaba exatamente na distribuição.
+
+---
+
+## Deploy
+
+O jogo é estático: sem servidor, sem banco, sem uma única chamada de rede em
+runtime. `npm run build` gera `dist/` — um HTML, um JS e um CSS — e qualquer
+CDN serve isso. A hospedagem escolhida é o **Cloudflare Pages**, pelo tráfego
+sem teto no plano gratuito e por ser a mesma conta onde os Durable Objects
+vivem, que é por onde o multiplayer da Fase 4 vai passar.
+
+### Configuração no painel
+
+Em `dash.cloudflare.com` → Workers & Pages → Create → Pages → Connect to Git:
+
+| Campo | Valor |
+| --- | --- |
+| Framework preset | Vite |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Production branch | `main` |
+
+Nada além disso. O `.nvmrc` fixa a versão do Node do build remoto, e
+`public/_headers` — copiado pelo Vite para a raiz de `dist/` — marca
+`/assets/*` como `immutable`, o que é seguro porque os nomes dos arquivos
+carregam hash de conteúdo.
+
+Um `_redirects` com catch-all **não é necessário**: o roteamento é `useState`
+em `src/ui/App.tsx`, não há rotas de URL para o servidor resolver. E o `base`
+do `vite.config.ts` fica intocado, porque o Pages serve na raiz do domínio.
+
+### O ciclo de trabalho
+
+- `npm run dev` não muda em nada.
+- Push em `main` → produção, em cerca de um minuto.
+- Push em qualquer outra branch → uma URL de preview própria e permanente. É o
+  jeito de mandar uma regra nova para alguém testar sem tocar na produção.
+- Rollback é um clique no painel. Sem banco e sem migração, não há risco.
+
+O CI em `.github/workflows/ci.yml` roda typecheck, testes e a simulação de
+invariantes antes do build. Isso existe porque `npm run build` executa `tsc -b`
+primeiro: sem o CI, um erro de tipo vira um build falhado dentro do painel da
+Cloudflare, que ninguém abre no dia a dia.
