@@ -46,3 +46,13 @@ jobs:
       # Por último, porque é o que a Cloudflare vai rodar.
       - name: Build de produção
         run: npm run build
+
+      # O build passar não significa que o deploy passa: um erro no
+      # `wrangler.jsonc` — nome errado, diretório de assets inexistente, campo
+      # inválido — só apareceria no painel da Cloudflare, depois do merge.
+      # `--dry-run` faz toda a validação e monta o upload sem publicar nada, e
+      # por não publicar, dispensa credencial: não há segredo a configurar.
+      - name: Validar configuração de deploy
+        run: npx wrangler deploy --dry-run
+        env:
+          WRANGLER_SEND_METRICS: 'false'
