@@ -1,0 +1,10 @@
+# Regras de cabeçalho lidas pelo Cloudflare Pages a partir da raiz de `dist/`.
+# Arquivos em `public/` são copiados literalmente pelo Vite, então este arquivo
+# chega em `dist/_headers` sem precisar de nenhum passo extra no build.
+
+# Os nomes dos assets carregam hash de conteúdo (`index-Bs2AQL2G.js`), então um
+# arquivo com um dado nome nunca muda: cachear para sempre é seguro e faz o
+# segundo carregamento da mesa ser instantâneo. Quem aponta para o hash novo a
+# cada deploy é o `index.html`, que mantém o cache curto padrão.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

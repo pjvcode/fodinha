@@ -1,0 +1,48 @@
+# Portão de qualidade antes do deploy.
+#
+# Existe por um motivo específico: `npm run build` roda `tsc -b` antes do Vite,
+# então um erro de tipo derruba o build *dentro da Cloudflare*, num painel que
+# ninguém abre no dia a dia. Aqui a falha aparece no GitHub, no commit ou no PR
+# que a causou.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Mesma fonte de verdade que a Cloudflare usa no build remoto.
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Testes
+        run: npm test
+
+      # A simulação bot-vs-bot afirma os invariantes do motor a cada passo. Pega
+      # regressão de regra que os testes unitários não imaginaram — sobretudo as
+      # mesas em que o baralho acaba exatamente na distribuição. Seed fixa: uma
+      # falha aqui é reproduzível com o mesmo comando.
+      - name: Invariantes do motor
+        run: |
+          npm run sim -- --seed 1 --games 200 --players 4 --quiet
+          npm run sim -- --seed 1 --games 100 --players 2 --quiet
+          npm run sim -- --seed 1 --games 100 --players 8 --quiet
+
+      # Por último, porque é o que a Cloudflare vai rodar.
+      - name: Build de produção
+        run: npm run build
