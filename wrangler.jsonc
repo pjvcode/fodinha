@@ -1,0 +1,18 @@
+{
+  // Deploy do jogo como Worker de assets estáticos.
+  //
+  // Não há `main`: o jogo é 100% client-side, então não existe código de
+  // servidor a executar — o Worker só serve o que o Vite gerou. É aqui também
+  // que o multiplayer da Fase 4 entraria, adicionando um `main` e o binding do
+  // Durable Object da sala, sem trocar de plataforma.
+  "name": "fodinha",
+  "compatibility_date": "2026-08-13",
+  "assets": {
+    "directory": "./dist",
+
+    // A UI roteia por `useState` em `src/ui/App.tsx`, não por URL. Ainda assim
+    // o modo SPA é o correto: qualquer caminho que alguém digite ou favorite
+    // devolve o `index.html` com 200, em vez de um 404 do Worker.
+    "not_found_handling": "single-page-application"
+  }
+}

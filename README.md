@@ -259,29 +259,32 @@ em que o baralho acaba exatamente na distribuição.
 
 O jogo é estático: sem servidor, sem banco, sem uma única chamada de rede em
 runtime. `npm run build` gera `dist/` — um HTML, um JS e um CSS — e qualquer
-CDN serve isso. A hospedagem escolhida é o **Cloudflare Pages**, pelo tráfego
-sem teto no plano gratuito e por ser a mesma conta onde os Durable Objects
-vivem, que é por onde o multiplayer da Fase 4 vai passar.
+CDN serve isso. A hospedagem é o **Cloudflare Workers com static assets**, pelo
+tráfego sem teto no plano gratuito e porque é o mesmo deploy onde os Durable
+Objects vivem, que é por onde o multiplayer da Fase 4 vai passar.
 
-### Configuração no painel
+### Configuração
 
-Em `dash.cloudflare.com` → Workers & Pages → Create → Pages → Connect to Git:
+Todo o deploy cabe em `wrangler.jsonc`, na raiz. Não há `main`: sem código de
+servidor, o Worker apenas serve o que o Vite gerou. `not_found_handling` em
+modo SPA faz qualquer caminho digitado ou favoritado devolver o `index.html`
+com 200 em vez de um 404.
+
+No painel (`dash.cloudflare.com` → Workers & Pages → Create → Workers →
+Connect to Git), os campos são:
 
 | Campo | Valor |
 | --- | --- |
-| Framework preset | Vite |
+| Project name | `fodinha` (igual ao `name` do `wrangler.jsonc`) |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
+| Deploy command | `npx wrangler deploy` |
 | Production branch | `main` |
 
-Nada além disso. O `.nvmrc` fixa a versão do Node do build remoto, e
-`public/_headers` — copiado pelo Vite para a raiz de `dist/` — marca
-`/assets/*` como `immutable`, o que é seguro porque os nomes dos arquivos
-carregam hash de conteúdo.
-
-Um `_redirects` com catch-all **não é necessário**: o roteamento é `useState`
-em `src/ui/App.tsx`, não há rotas de URL para o servidor resolver. E o `base`
-do `vite.config.ts` fica intocado, porque o Pages serve na raiz do domínio.
+O `.nvmrc` fixa a versão do Node do build remoto, e `public/_headers` —
+copiado pelo Vite para a raiz de `dist/` — marca `/assets/*` como `immutable`,
+o que é seguro porque os nomes dos arquivos carregam hash de conteúdo. O
+`base` do `vite.config.ts` fica intocado, porque o site é servido na raiz do
+domínio.
 
 ### O ciclo de trabalho
 
