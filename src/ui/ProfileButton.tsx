@@ -13,9 +13,11 @@ import { ProfileScreen } from './ProfileScreen';
 export function ProfileButton({
   settings,
   onSettings,
+  apelidoTravado = false,
 }: {
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
+  apelidoTravado?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const cor = corMarcador(settings.corMarcador);
@@ -43,6 +45,7 @@ export function ProfileButton({
         <ProfileScreen
           settings={settings}
           onSettings={onSettings}
+          apelidoTravado={apelidoTravado}
           onFechar={() => setAberto(false)}
         />
       )}

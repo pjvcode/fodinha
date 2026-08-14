@@ -8,15 +8,17 @@ import type { GameConfig } from '../engine/types';
 import { configLiga, RITMO_LIGA, resultadoDeView, salvarResultado } from '../state/leagues';
 import { carregarSettings, salvarSettings } from '../state/settings';
 import type { UiSettings } from '../state/settings';
+import { useAuth } from '../state/useAuth';
 import { createLocalTransport } from '../transport/local';
 import { DEFAULT_TIMINGS, scaleTimings } from '../transport/types';
 import type { Transport } from '../transport/types';
+import { AuthScreen } from './AuthScreen';
 import { GameScreen } from './GameScreen';
 import { HomeScreen } from './HomeScreen';
 import { LeagueScreen } from './LeagueScreen';
 import { SetupScreen } from './SetupScreen';
 
-type Rota = 'home' | 'setup' | 'liga';
+type Rota = 'home' | 'setup' | 'liga' | 'auth';
 
 function botsFrom(config: GameConfig): BotMap {
   const map: BotMap = {};
@@ -27,6 +29,7 @@ function botsFrom(config: GameConfig): BotMap {
 }
 
 export function App() {
+  const auth = useAuth();
   const [settings, setSettings] = useState<UiSettings>(carregarSettings);
   const [rota, setRota] = useState<Rota>('home');
   const [config, setConfig] = useState<GameConfig | null>(null);
@@ -37,6 +40,13 @@ export function App() {
   useEffect(() => {
     salvarSettings(settings);
   }, [settings]);
+
+  // Logado, quem manda no nome da mesa é a conta — é o nome que vai para a
+  // classificação da liga e para os outros assentos numa sala online. Trocar
+  // aqui, num ponto só, alcança a mesa, o perfil e a tela de setup de uma vez.
+  const settingsDaMesa: UiSettings = auth.usuario
+    ? { ...settings, apelido: auth.usuario.display }
+    : settings;
 
   // O transporte é o host da partida: nasce com a config, morre ao sair.
   useEffect(() => {
@@ -64,7 +74,7 @@ export function App() {
 
   function iniciarLiga(ligaId: string) {
     setLigaAtiva(ligaId);
-    setConfig(configLiga(settings.apelido, randomSeed()));
+    setConfig(configLiga(settingsDaMesa.apelido, randomSeed()));
   }
 
   function aoTerminar(view: PlayerView) {
@@ -78,23 +88,31 @@ export function App() {
     setRota(voltarPara);
   }
 
+  const logado = auth.usuario !== null;
+
   if (config !== null && transport !== null) {
     return (
       <GameScreen
         transport={transport}
-        settings={settings}
+        settings={settingsDaMesa}
         onSettings={setSettings}
+        apelidoTravado={logado}
         onRestart={sairDaPartida}
         onMatchOver={aoTerminar}
       />
     );
   }
 
+  if (rota === 'auth') {
+    return <AuthScreen auth={auth} onVoltar={() => setRota('home')} />;
+  }
+
   if (rota === 'setup') {
     return (
       <SetupScreen
-        settings={settings}
+        settings={settingsDaMesa}
         onSettings={setSettings}
+        apelidoTravado={logado}
         onStart={iniciarPersonalizado}
         onVoltar={() => setRota('home')}
       />
@@ -107,8 +125,11 @@ export function App() {
 
   return (
     <HomeScreen
-      settings={settings}
+      settings={settingsDaMesa}
       onSettings={setSettings}
+      apelidoTravado={logado}
+      auth={auth}
+      onEntrar={() => setRota('auth')}
       onCustom={() => setRota('setup')}
       onLiga={() => setRota('liga')}
     />

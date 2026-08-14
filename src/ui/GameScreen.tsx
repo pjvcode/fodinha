@@ -18,12 +18,15 @@ export function GameScreen({
   transport,
   settings,
   onSettings,
+  apelidoTravado,
   onRestart,
   onMatchOver,
 }: {
   transport: Transport;
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
+  /** Logado, o apelido da mesa vem da conta e o perfil não o edita. */
+  apelidoTravado?: boolean;
   /** Abandona a partida e volta ao menu. */
   onRestart: () => void;
   /** Disparado uma única vez quando a partida termina. */
@@ -122,6 +125,7 @@ export function GameScreen({
         <ProfileScreen
           settings={settings}
           onSettings={onSettings}
+          apelidoTravado={apelidoTravado}
           onFechar={() => setPerfilAberto(false)}
         />
       )}

@@ -1,19 +1,30 @@
 import type { UiSettings } from '../state/settings';
+import type { Auth } from '../state/useAuth';
+import { ContaBadge } from './AuthScreen';
 import { ProfileButton } from './ProfileButton';
 
 /**
  * A porta de entrada. Duas escolhas: montar uma mesa do zero (Jogo
  * Personalizado) ou entrar numa das ligas de fábrica, onde o formato é fixo e o
  * placar de cada partida fica gravado.
+ *
+ * A conta fica no topo, ao lado do perfil: são as duas faces do mesmo assunto —
+ * quem eu sou na mesa e quem eu sou na liga.
  */
 export function HomeScreen({
   settings,
   onSettings,
+  apelidoTravado,
+  auth,
+  onEntrar,
   onCustom,
   onLiga,
 }: {
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
+  apelidoTravado?: boolean;
+  auth: Auth;
+  onEntrar: () => void;
   onCustom: () => void;
   onLiga: () => void;
 }) {
@@ -28,7 +39,14 @@ export function HomeScreen({
             Baralho de 40 cartas, manilha do truco, e quem erra o palpite paga.
           </p>
         </div>
-        <ProfileButton settings={settings} onSettings={onSettings} />
+        <div className="flex items-center gap-2">
+          <ContaBadge auth={auth} onEntrar={onEntrar} />
+          <ProfileButton
+            settings={settings}
+            onSettings={onSettings}
+            apelidoTravado={apelidoTravado}
+          />
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
