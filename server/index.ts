@@ -17,12 +17,15 @@ import { rotaCadastro, rotaEu, rotaLogin, rotaLogout } from './auth';
 import type { Env } from './env';
 import { erro } from './http';
 import { rotaClassificacao, rotaHistoricoPessoal, rotaRegistrarResultado } from './league';
+import { rotaCriarSala, rotaEntrarSala, rotaSocketSala } from './rooms';
 
-/** `/api/league/:id/algo` → `['id', 'algo']`. `null` quando não é essa forma. */
-function segmentosDaLiga(pathname: string): [string, string] | null {
+export { RoomDO } from './room';
+
+/** `/api/<recurso>/:id/algo` → `['id', 'algo']`. `null` quando não é essa forma. */
+function segmentos(pathname: string, recurso: string): [string, string] | null {
   const partes = pathname.split('/');
-  // ['', 'api', 'league', ':id', 'algo']
-  if (partes.length !== 5 || partes[1] !== 'api' || partes[2] !== 'league') return null;
+  // ['', 'api', recurso, ':id', 'algo']
+  if (partes.length !== 5 || partes[1] !== 'api' || partes[2] !== recurso) return null;
   const id = decodeURIComponent(partes[3]!);
   return id === '' ? null : [id, partes[4]!];
 }
@@ -41,9 +44,11 @@ export default {
         return rotaLogout(req, env, url);
       case 'GET /api/auth/me':
         return rotaEu(req, env);
+      case 'POST /api/rooms':
+        return rotaCriarSala(req, env);
     }
 
-    const liga = segmentosDaLiga(url.pathname);
+    const liga = segmentos(url.pathname, 'league');
     if (liga) {
       const [ligaId, recurso] = liga;
       if (req.method === 'POST' && recurso === 'result') {
@@ -54,6 +59,19 @@ export default {
       }
       if (req.method === 'GET' && recurso === 'me') {
         return rotaHistoricoPessoal(req, env, ligaId);
+      }
+    }
+
+    const sala = segmentos(url.pathname, 'rooms');
+    if (sala) {
+      // O código vira o nome do Durable Object: normalizado para maiúsculas,
+      // quem digita em minúsculas cai na mesma sala.
+      const [codigo, recurso] = [sala[0].toUpperCase(), sala[1]];
+      if (req.method === 'GET' && recurso === 'ws') {
+        return rotaSocketSala(req, env, codigo);
+      }
+      if (req.method === 'POST' && recurso === 'join') {
+        return rotaEntrarSala(req, env, codigo);
       }
     }
 

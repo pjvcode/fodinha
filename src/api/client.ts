@@ -101,6 +101,24 @@ export interface PartidaRegistrada {
   posicao: number;
 }
 
+// ---------------------------------------------------------------------------
+// Salas
+// ---------------------------------------------------------------------------
+
+export function apiCriarSala(jogadores: number) {
+  return post<{ codigo: string }>('/api/rooms', { jogadores });
+}
+
+/**
+ * Confere se dá para entrar antes de abrir o WebSocket.
+ *
+ * Sem isto, uma sala cheia ou inexistente viraria um socket que abre e fecha
+ * sozinho, sem motivo visível. Assim a recusa chega como frase.
+ */
+export function apiEntrarSala(codigo: string) {
+  return post<{ ok: true }>(`/api/rooms/${encodeURIComponent(codigo)}/join`, {});
+}
+
 export interface ResultadoRegistrado {
   placar: LinhaApurada[];
   vencedores: string[];

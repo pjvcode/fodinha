@@ -3,8 +3,11 @@
  *
  * A UI nunca toca no `MatchState` — ela fala com um `Transport`, que devolve
  * apenas a `PlayerView` redigida do jogador local e aceita as ações dele.
- * Hoje o host é a própria aba (`LocalTransport`); em Fase 4 um
- * `PeerJSTransport` implementa a mesma interface e nada na UI muda.
+ *
+ * São dois hosts hoje, e a UI não distingue um do outro: `LocalTransport`, em
+ * que a própria aba hospeda a partida, e `RemoteTransport`, em que o host é um
+ * Durable Object do outro lado do fio. `GameScreen` e tudo abaixo dela não
+ * mudaram uma linha quando o segundo apareceu.
  */
 
 import type { PlayerView } from '../engine/selectors';

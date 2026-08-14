@@ -1,7 +1,7 @@
 # Desafio Esquadrilha
 
 Variante brasileira de *Oh Hell* com a hierarquia e as manilhas do Truco Paulista.
-Webapp em React, um humano contra bots, sala hospedada localmente pelo navegador.
+Webapp em React: contra bots na própria aba, ou contra gente numa sala online.
 
 ```bash
 npm install
@@ -14,10 +14,17 @@ npm run dev
 | Comando | O que faz |
 | --- | --- |
 | `npm run dev` | Sobe o jogo em `http://localhost:5173` |
+| `npm run dev:api` | Sobe o servidor em `:8787` — só para login, liga e salas |
+| `npm run db:local` | Aplica as migrações no D1 local |
 | `npm test` | Suíte completa (Vitest) |
-| `npm run typecheck` | Checagem de tipos |
+| `npm run typecheck` | Checagem de tipos, do app e do Worker |
 | `npm run build` | Build de produção |
 | `npm run sim -- --help` | Simulação headless bot-vs-bot |
+
+Jogar contra bots não precisa de servidor: `npm run dev` sozinho basta. Login,
+liga e multiplayer precisam do `dev:api` em paralelo — o Vite faz proxy de
+`/api` (e do WebSocket) para ele, recriando a origem única que existe em
+produção.
 
 ---
 
@@ -197,13 +204,19 @@ dois balões simultâneos, e nenhum bot repete a última frase que disse.
 ```
 src/engine/     Regras. Funções puras, zero React, zero Math.random.
 src/bots/       Bots. Consomem só a PlayerView redigida.
-src/transport/  Fronteira UI ↔ jogo. LocalTransport hoje, PeerJS depois.
+src/transport/  Fronteira UI ↔ jogo. LocalTransport (aba) e RemoteTransport (rede).
 src/theater/    Personas, gatilhos, reações e voz. Reações são função pura.
 src/ui/casino/  A mesa: geometria, feltro, marcadores, roseta, balões.
 src/ui/         React. Não conhece o MatchState.
-src/state/      Preferências e perfil. Fora do GameConfig de propósito.
+src/state/      Preferências, perfil, liga e regras compartilhadas com o servidor.
+server/         O Worker: contas, liga e o Durable Object das salas.
 scripts/sim.ts  Simulação headless com asserção de invariantes.
 ```
+
+A direção de dependência é **`server/` → `src/`, nunca o contrário**. O servidor
+importa o engine, os bots e as regras de liga sem cópia nem adaptação; nada em
+`src/ui/` importa de `server/`. O que as duas pontas precisam — validação de
+credenciais, formato da liga, protocolo da sala — mora em `src/`.
 
 O engine é `(state, action) => { state, events }`. Todo o estado é serializável
 em JSON, inclusive o do PRNG — a mesma semente reproduz a partida inteira, o que
@@ -222,6 +235,55 @@ sem pensar.
 **Sem XState.** A máquina de estados é um campo `phase` de união discriminada
 dentro do próprio estado, com reducer puro. Serializa e replica de graça, que é
 o que importa para o multiplayer.
+
+### O servidor
+
+Existe para o que precisa ser comum a todo mundo — e só para isso. A mesa
+continua rodando inteira no cliente quando o jogo é solo.
+
+```
+server/password.ts   PBKDF2 e tokens. Puro, sem tipo do Cloudflare.
+server/auth.ts       Cadastro, login, sessão. Fala com D1.
+server/league.ts     Registro de resultado e classificação.
+server/roomLogic.ts  A sala como máquina de estados pura. É o LocalTransport do servidor.
+server/room.ts       O Durable Object: WebSocket, alarme e armazenamento.
+```
+
+**Contas.** Apelido e senha, com PBKDF2-HMAC-SHA256 — é o que o WebCrypto dos
+Workers oferece. A tabela de sessões guarda só o SHA-256 do token; o token cru
+existe apenas no cookie `HttpOnly` do dono. Login responde a mesma frase, e gasta
+o mesmo tempo, para senha errada e para apelido inexistente.
+
+**A liga não acredita no cliente.** Numa partida solo é o cliente que embaralha,
+roda os bots e apura o placar — aceitar o número que ele manda seria aceitar
+qualquer número. Como o engine é puro e determinístico, o cliente manda a config
+e o log de ações, e o servidor **joga a partida de novo** com o mesmo `reduce()`.
+O envio não tem campo de placar: não há número do cliente em que acreditar.
+
+O que isso não cobre: um cliente adulterado ainda pode fazer os bots jogarem mal
+e ganhar de verdade. Fechar essa porta exigiria rodar a partida solo inteira no
+servidor. Para uma liga entre amigos, a barreira certa é esta.
+
+**Salas.** Uma sala = um Durable Object, endereçado pelo código. Ele é o host
+autoritativo, no mesmo papel que `LocalTransport` faz numa aba: mesmo `reduce()`,
+mesmo `playerView()`, mesmos bots. Assento vazio vira bot ao começar — é isso que
+faz uma mesa de 4 funcionar com dois amigos.
+
+Duas escolhas de plataforma que custaram depuração e não são de estilo:
+
+- **Alarme, não `setTimeout`.** Um `setTimeout` para o ritmo dos bots funciona
+  por algumas jogadas e depois estoura com *Network connection lost*: o callback
+  dispara fora do contexto de I/O da requisição que o criou. O alarme do Durable
+  Object é o mecanismo que a plataforma oferece para trabalho adiado.
+- **Hibernação nos WebSockets.** Com `acceptWebSocket` as conexões sobrevivem à
+  evicção do objeto, e o estado da sala vem do armazenamento a cada despertar. O
+  `BotMap` fica de fora do que é gravado — um bot é função determinística do
+  nível e da semente, então é reconstruído idêntico ao carregar.
+
+**A UI não sabe a diferença.** `RemoteTransport` implementa a mesma interface
+`Transport` que o host local, então `GameScreen` e tudo abaixo dela não mudaram
+uma linha para o multiplayer existir. Era exatamente para isso que a fronteira do
+transporte estava lá.
 
 ### Bots
 
@@ -257,18 +319,39 @@ em que o baralho acaba exatamente na distribuição.
 
 ## Deploy
 
-O jogo é estático: sem servidor, sem banco, sem uma única chamada de rede em
-runtime. `npm run build` gera `dist/` — um HTML, um JS e um CSS — e qualquer
-CDN serve isso. A hospedagem é o **Cloudflare Workers com static assets**, pelo
-tráfego sem teto no plano gratuito e porque é o mesmo deploy onde os Durable
-Objects vivem, que é por onde o multiplayer da Fase 4 vai passar.
+O mesmo Worker serve os assets estáticos e, em `/api/*`, roda o servidor.
+`npm run build` gera `dist/` e o `wrangler` publica os dois juntos. A hospedagem
+é o **Cloudflare Workers com static assets**, pelo
+tráfego sem teto no plano gratuito e porque é o mesmo deploy onde o D1 e os
+Durable Objects vivem — contas, liga e salas não precisaram de outra plataforma.
+
+### Antes do primeiro deploy
+
+O banco precisa existir e as migrações precisam rodar:
+
+```bash
+npx wrangler d1 create fodinha          # copie o id para o wrangler.jsonc
+npx wrangler d1 migrations apply fodinha --remote
+```
+
+O `database_id` no `wrangler.jsonc` vem com um valor de espaço reservado: o
+`--dry-run` do CI valida a forma do arquivo e não consulta o banco, mas o deploy
+de verdade precisa do id real.
 
 ### Configuração
 
-Todo o deploy cabe em `wrangler.jsonc`, na raiz. Não há `main`: sem código de
-servidor, o Worker apenas serve o que o Vite gerou. `not_found_handling` em
-modo SPA faz qualquer caminho digitado ou favoritado devolver o `index.html`
-com 200 em vez de um 404.
+Todo o deploy cabe em `wrangler.jsonc`, na raiz. Três pontos que não são óbvios:
+
+- `main` aponta para o Worker, e `assets` continua servindo o `dist/`.
+- `run_worker_first: ["/api/*"]` inverte a prioridade só onde precisa. Sem ele o
+  `not_found_handling` em modo SPA engoliria a API: `/api/auth/me` não é um
+  arquivo em `dist/`, então voltaria o `index.html` com 200 em vez de chegar ao
+  Worker.
+- `not_found_handling` em modo SPA continua valendo para todo o resto — qualquer
+  caminho digitado ou favoritado devolve o `index.html` com 200 em vez de um 404.
+
+`RITMO_SALA` é uma variável opcional do ambiente: multiplica o ritmo da mesa
+online (padrão 1.5, o Cinema) sem exigir mudança de código.
 
 No painel (`dash.cloudflare.com` → Workers & Pages → Create → Workers →
 Connect to Git), os campos são:

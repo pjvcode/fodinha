@@ -5,6 +5,13 @@
 
 export interface Env {
   DB: D1Database;
+  /** Uma sala de multiplayer por código. Veja `server/room.ts`. */
+  ROOMS: DurableObjectNamespace;
+  /**
+   * Multiplicador do ritmo da mesa online. Ausente = 1.5 (Cinema).
+   * Existe para afinar o ritmo sem redeploy de código.
+   */
+  RITMO_SALA?: string;
 }
 
 /** Uma linha da tabela `users`. */

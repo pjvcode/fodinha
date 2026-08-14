@@ -2,9 +2,9 @@
  * Host local: a própria aba mantém o `MatchState` autoritativo, roda os bots e
  * publica para a UI apenas a `PlayerView` do jogador local.
  *
- * A separação não é decorativa — é ela que faz o multiplayer online da Fase 4
- * ser um plugue: um `PeerJSTransport` mantém o mesmo estado no host e manda a
- * view redigida de cada peer pela rede, sem que a UI perceba a diferença.
+ * A separação não é decorativa — é ela que fez o multiplayer online ser um
+ * plugue: `server/room.ts` mantém o mesmo estado num Durable Object e manda a
+ * view redigida de cada jogador pela rede, sem que a UI perceba a diferença.
  */
 
 import { nextAutoAction } from '../bots/runner';

@@ -19,6 +19,7 @@ export function HomeScreen({
   onEntrar,
   onCustom,
   onLiga,
+  onOnline,
 }: {
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
@@ -27,6 +28,7 @@ export function HomeScreen({
   onEntrar: () => void;
   onCustom: () => void;
   onLiga: () => void;
+  onOnline: () => void;
 }) {
   return (
     <div className="mx-auto flex min-h-full max-w-xl flex-col justify-center gap-6 p-4 sm:gap-8 sm:p-6">
@@ -61,6 +63,12 @@ export function HomeScreen({
           onClick={onLiga}
           destaque
         />
+        <OpcaoCard
+          titulo="Jogar online"
+          descricao="Crie uma sala e passe o código. Assento que sobrar vira bot."
+          onClick={onOnline}
+          className="sm:col-span-2"
+        />
       </div>
     </div>
   );
@@ -71,21 +79,24 @@ function OpcaoCard({
   descricao,
   onClick,
   destaque = false,
+  className = '',
 }: {
   titulo: string;
   descricao: string;
   onClick: () => void;
   destaque?: boolean;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={[
-        'flex min-h-40 cursor-pointer flex-col items-start justify-between gap-3 rounded-2xl border p-5 text-left transition-colors',
+        'flex min-h-32 cursor-pointer flex-col items-start justify-between gap-3 rounded-2xl border p-5 text-left transition-colors',
         destaque
           ? 'border-amber-300/40 bg-amber-300/10 hover:bg-amber-300/15'
           : 'border-white/12 bg-black/25 hover:bg-white/5',
+        className,
       ].join(' ')}
     >
       <span className="text-xl font-black tracking-tight text-white sm:text-2xl">{titulo}</span>

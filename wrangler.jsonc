@@ -23,6 +23,22 @@
     "run_worker_first": ["/api/*"]
   },
 
+  // Uma sala de multiplayer = um Durable Object, endereçado pelo código dela.
+  // Objeto único e serializado por natureza: não há duas jogadas chegando ao
+  // mesmo estado ao mesmo tempo, que é a garantia de que um host precisa.
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "RoomDO" }]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      // `new_sqlite_classes` e não `new_classes`: é o backend atual e o único
+      // disponível nos planos gratuitos.
+      "new_sqlite_classes": ["RoomDO"]
+    }
+  ],
+
   "d1_databases": [
     {
       "binding": "DB",
