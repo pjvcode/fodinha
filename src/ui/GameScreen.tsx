@@ -11,6 +11,7 @@ import { HandFan } from './HandFan';
 import { BotaoNeutro, BotaoPrimario, Overlay } from './Overlay';
 import { ProfileScreen } from './ProfileScreen';
 import { MatchOver, RoundSummary } from './RoundSummary';
+import type { RegistroLiga } from './RoundSummary';
 import { Scoreboard } from './Scoreboard';
 import { SuitLegend } from './SuitLegend';
 
@@ -19,6 +20,7 @@ export function GameScreen({
   settings,
   onSettings,
   apelidoTravado,
+  registroLiga,
   onRestart,
   onMatchOver,
 }: {
@@ -27,6 +29,8 @@ export function GameScreen({
   onSettings: (s: UiSettings) => void;
   /** Logado, o apelido da mesa vem da conta e o perfil não o edita. */
   apelidoTravado?: boolean;
+  /** Andamento do registro do resultado na liga, mostrado na tela final. */
+  registroLiga?: RegistroLiga;
   /** Abandona a partida e volta ao menu. */
   onRestart: () => void;
   /** Disparado uma única vez quando a partida termina. */
@@ -119,7 +123,9 @@ export function GameScreen({
       </section>
 
       {view.phase === 'handScored' && <RoundSummary view={view} onContinue={game.continueHand} />}
-      {view.phase === 'matchOver' && <MatchOver view={view} onRestart={onRestart} />}
+      {view.phase === 'matchOver' && (
+        <MatchOver view={view} registro={registroLiga} onRestart={onRestart} />
+      )}
 
       {perfilAberto && (
         <ProfileScreen

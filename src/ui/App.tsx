@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 
+import { apiRegistrarResultado } from '../api/client';
 import { createBot } from '../bots';
 import type { BotMap } from '../bots/types';
 import { randomSeed } from '../engine/rng';
 import type { PlayerView } from '../engine/selectors';
 import type { GameConfig } from '../engine/types';
-import { configLiga, RITMO_LIGA, resultadoDeView, salvarResultado } from '../state/leagues';
+import { configLiga, RITMO_LIGA, resultadoDeView } from '../state/leagues';
+import { salvarResultado } from '../state/leaguesLocal';
 import { carregarSettings, salvarSettings } from '../state/settings';
 import type { UiSettings } from '../state/settings';
 import { useAuth } from '../state/useAuth';
@@ -17,6 +19,7 @@ import { GameScreen } from './GameScreen';
 import { HomeScreen } from './HomeScreen';
 import { LeagueScreen } from './LeagueScreen';
 import { SetupScreen } from './SetupScreen';
+import type { RegistroLiga } from './RoundSummary';
 
 type Rota = 'home' | 'setup' | 'liga' | 'auth';
 
@@ -36,6 +39,7 @@ export function App() {
   const [transport, setTransport] = useState<Transport | null>(null);
   /** Liga da partida em andamento, ou `null` num jogo personalizado. */
   const [ligaAtiva, setLigaAtiva] = useState<string | null>(null);
+  const [registroLiga, setRegistroLiga] = useState<RegistroLiga>({ estado: 'inativo' });
 
   useEffect(() => {
     salvarSettings(settings);
@@ -69,16 +73,32 @@ export function App() {
 
   function iniciarPersonalizado(c: GameConfig) {
     setLigaAtiva(null);
+    setRegistroLiga({ estado: 'inativo' });
     setConfig(c);
   }
 
   function iniciarLiga(ligaId: string) {
     setLigaAtiva(ligaId);
+    setRegistroLiga({ estado: 'inativo' });
     setConfig(configLiga(settingsDaMesa.apelido, randomSeed()));
   }
 
   function aoTerminar(view: PlayerView) {
-    if (ligaAtiva) salvarResultado(ligaAtiva, resultadoDeView(view));
+    if (!ligaAtiva) return;
+
+    // O histórico local vale para todo mundo — quem joga sem conta também quer
+    // ver as próprias partidas.
+    salvarResultado(ligaAtiva, resultadoDeView(view));
+
+    // A liga no servidor só existe para quem entrou. O log de ações vem do
+    // transporte: é ele que hospeda a partida e sabe o que foi aplicado.
+    const actions = transport?.getActionLog?.();
+    if (!auth.usuario || !config || !actions || actions.length === 0) return;
+
+    setRegistroLiga({ estado: 'enviando' });
+    void apiRegistrarResultado(ligaAtiva, { config, actions: [...actions] }).then((r) => {
+      setRegistroLiga(r.ok ? { estado: 'registrado' } : { estado: 'falhou', erro: r.erro });
+    });
   }
 
   function sairDaPartida() {
@@ -97,6 +117,7 @@ export function App() {
         settings={settingsDaMesa}
         onSettings={setSettings}
         apelidoTravado={logado}
+        registroLiga={registroLiga}
         onRestart={sairDaPartida}
         onMatchOver={aoTerminar}
       />

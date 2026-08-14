@@ -1,12 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import {
-  BOTS_POR_MESA,
-  LIGAS,
-  carregarResultados,
-  ligaPorId,
-} from '../state/leagues';
+import { apiClassificacao } from '../api/client';
+import { BOTS_POR_MESA, LIGAS, ligaPorId } from '../state/leagues';
 import type { ResultadoLiga } from '../state/leagues';
+import { carregarResultados } from '../state/leaguesLocal';
+import type { LinhaClassificacao } from '../state/leagueTable';
 import { BotaoPrimario } from './Overlay';
 
 /**
@@ -26,6 +24,7 @@ export function LeagueScreen({
   // resultado recém-gravado aparece.
   const resultados = carregarResultados(ligaId);
   const liga = ligaPorId(ligaId);
+  const classificacao = useClassificacao(ligaId);
 
   return (
     <div className="mx-auto flex min-h-full max-w-xl flex-col gap-5 p-4 sm:p-6">
@@ -65,9 +64,11 @@ export function LeagueScreen({
         Jogar partida na {liga?.nome}
       </BotaoPrimario>
 
+      <Classificacao linhas={classificacao} />
+
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-white/70">
-          Histórico {liga ? `da ${liga.nome}` : ''}
+          Suas partidas neste aparelho
         </h2>
         {resultados.length === 0 ? (
           <p className="rounded-xl border border-white/10 bg-black/20 px-4 py-6 text-center text-sm text-white/45">
@@ -82,6 +83,70 @@ export function LeagueScreen({
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * A classificação vem do servidor e só existe lá: ela cruza os resultados de
+ * todo mundo, e o `localStorage` de um aparelho só conhece o dono dele.
+ *
+ * `null` enquanto carrega; lista vazia quando ninguém registrou nada ainda.
+ */
+function useClassificacao(ligaId: string): LinhaClassificacao[] | null {
+  const [linhas, setLinhas] = useState<LinhaClassificacao[] | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    setLinhas(null);
+    void apiClassificacao(ligaId).then((r) => {
+      if (vivo) setLinhas(r.ok ? r.dados.classificacao : []);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [ligaId]);
+
+  return linhas;
+}
+
+function Classificacao({ linhas }: { linhas: LinhaClassificacao[] | null }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-sm font-semibold text-white/70">Classificação</h2>
+
+      {linhas === null ? (
+        <p className="rounded-xl border border-white/10 bg-black/20 px-4 py-6 text-center text-sm text-white/35">
+          Carregando…
+        </p>
+      ) : linhas.length === 0 ? (
+        <p className="rounded-xl border border-white/10 bg-black/20 px-4 py-6 text-center text-sm text-white/45">
+          Ninguém pontuou ainda. Entre na sua conta e jogue a primeira.
+        </p>
+      ) : (
+        <table className="w-full rounded-xl border border-white/10 bg-black/25 text-xs">
+          <thead>
+            <tr className="text-white/40">
+              <th className="py-2 pl-3 text-left font-medium">#</th>
+              <th className="py-2 text-left font-medium">Jogador</th>
+              <th className="py-2 text-right font-medium">V</th>
+              <th className="py-2 text-right font-medium">P</th>
+              <th className="py-2 pr-3 text-right font-medium">Média</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l) => (
+              <tr key={l.userId} className="border-t border-white/5">
+                <td className="py-1.5 pl-3 text-white/45">{l.posicao}º</td>
+                <td className="max-w-32 truncate py-1.5 text-white/85">{l.display}</td>
+                <td className="py-1.5 text-right text-amber-200">{l.vitorias}</td>
+                <td className="py-1.5 text-right text-white/60">{l.partidas}</td>
+                <td className="py-1.5 pr-3 text-right text-white/70">{l.media.toFixed(1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
   );
 }
 

@@ -7,6 +7,9 @@
  * `INVALID_ACTION` em vez de lançar.
  */
 
+import type { EnvioResultado, LinhaApurada } from '../state/leagueReplay';
+import type { LinhaClassificacao } from '../state/leagueTable';
+
 export type Resposta<T> = { ok: true; dados: T } | { ok: false; erro: string };
 
 export interface Usuario {
@@ -65,4 +68,41 @@ export function apiLogout() {
 
 export function apiEu() {
   return api<{ usuario: Usuario }>('/api/auth/me');
+}
+
+// ---------------------------------------------------------------------------
+// Liga
+// ---------------------------------------------------------------------------
+
+/**
+ * Manda a partida terminada. O corpo é a config e o log de ações — não o
+ * placar: quem apura é o servidor, reproduzindo a partida. Não há número aqui
+ * em que ele precise acreditar.
+ */
+export function apiRegistrarResultado(ligaId: string, envio: EnvioResultado) {
+  return post<ResultadoRegistrado>(`/api/league/${encodeURIComponent(ligaId)}/result`, envio);
+}
+
+export function apiClassificacao(ligaId: string) {
+  return api<{ classificacao: LinhaClassificacao[] }>(
+    `/api/league/${encodeURIComponent(ligaId)}/standings`,
+  );
+}
+
+export function apiHistoricoLiga(ligaId: string) {
+  return api<{ partidas: PartidaRegistrada[] }>(`/api/league/${encodeURIComponent(ligaId)}/me`);
+}
+
+export interface PartidaRegistrada {
+  id: string;
+  data: string;
+  won: number;
+  penalidade: number;
+  posicao: number;
+}
+
+export interface ResultadoRegistrado {
+  placar: LinhaApurada[];
+  vencedores: string[];
+  minha: LinhaApurada;
 }

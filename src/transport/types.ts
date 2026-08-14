@@ -8,7 +8,7 @@
  */
 
 import type { PlayerView } from '../engine/selectors';
-import type { CardId, GameEvent } from '../engine/types';
+import type { Action, CardId, GameEvent } from '../engine/types';
 
 /**
  * Ações que um jogador pode originar. Não inclui as transições do host, nem a
@@ -43,6 +43,19 @@ export interface Transport {
    * consumidor sabe exatamente de onde continuar.
    */
   getEventLog(): readonly LoggedEvent[];
+  /**
+   * Toda ação aceita da partida, na ordem — a receita para reproduzi-la do
+   * zero a partir da `config`.
+   *
+   * É o que o servidor confere ao registrar um resultado de liga: ele roda o
+   * mesmo `reduce()` sobre esta lista e chega ao placar por conta própria, em
+   * vez de acreditar no que o cliente afirma.
+   *
+   * Opcional porque só quem é o host da partida tem como saber: num transporte
+   * de rede o estado autoritativo está do outro lado, e quem grava o resultado
+   * é o próprio servidor.
+   */
+  getActionLog?(): readonly Action[];
   subscribe(listener: () => void): () => void;
   dispatch(action: ClientAction): void;
   dispose(): void;

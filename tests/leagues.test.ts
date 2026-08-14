@@ -3,12 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BOTS_POR_MESA,
   NOMES_BOTS,
-  carregarResultados,
   configLiga,
   montarJogadoresLiga,
-  salvarResultado,
 } from '../src/state/leagues';
 import type { ResultadoLiga } from '../src/state/leagues';
+import { carregarResultados, salvarResultado } from '../src/state/leaguesLocal';
 
 /** localStorage de mentira, porque os testes rodam fora do browser. */
 function fakeStorage(): Storage {

@@ -2,18 +2,19 @@
  * Ligas do Desafio Esquadrilha.
  *
  * Uma liga é um formato de partida fixo (mesa de 5, ida-e-volta completa, bots
- * difíceis) com um histórico próprio de resultados gravado localmente. Não entra
- * no `GameConfig` nem no engine: aqui é só a config pré-montada e a persistência
- * do placar de cada partida terminada.
+ * difíceis). Não entra no `GameConfig` nem no engine: aqui é só a config
+ * pré-montada e a forma do resultado de uma partida terminada.
  *
- * Módulo puro, no espírito de `settings.ts`: nada aqui sabe o que é React, e tudo
- * que grava é serializável em JSON.
+ * Módulo puro de verdade: nada de React e nada de `localStorage`. Isso importa
+ * porque o servidor também depende dele — é daqui que sai o formato oficial da
+ * liga que `leagueReplay.ts` confere. Quem guarda no navegador é
+ * `leaguesLocal.ts`.
  */
 
 import { defaultConfig } from '../engine/reducer';
 import type { GameConfig, HandResult, PlayerConfig } from '../engine/types';
 import type { PlayerView } from '../engine/selectors';
-import { normalizarApelido } from './settings';
+import { normalizarApelido } from './apelido';
 
 export interface Liga {
   id: string;
@@ -85,7 +86,7 @@ export function configLiga(apelido: string, seed: number): GameConfig {
 }
 
 // ---------------------------------------------------------------------------
-// Persistência dos resultados
+// O resultado de uma partida
 // ---------------------------------------------------------------------------
 
 export interface PlacarLinha {
@@ -106,40 +107,6 @@ export interface ResultadoLiga {
   placar: PlacarLinha[];
   /** Log completo, mão a mão. */
   maos: HandResult[];
-}
-
-const KEY = 'desafio.ligas';
-
-type Guardado = Record<string, ResultadoLiga[]>;
-
-function carregarTudo(): Guardado {
-  try {
-    const bruto = localStorage.getItem(KEY);
-    if (!bruto) return {};
-    const lido = JSON.parse(bruto) as unknown;
-    return lido && typeof lido === 'object' ? (lido as Guardado) : {};
-  } catch {
-    return {};
-  }
-}
-
-/** Resultados de uma liga, do mais recente para o mais antigo. */
-export function carregarResultados(ligaId: string): ResultadoLiga[] {
-  const guardado = carregarTudo();
-  const lista = guardado[ligaId];
-  return Array.isArray(lista) ? lista : [];
-}
-
-/** Grava um resultado no topo do histórico da liga. */
-export function salvarResultado(ligaId: string, resultado: ResultadoLiga): void {
-  try {
-    const guardado = carregarTudo();
-    const lista = Array.isArray(guardado[ligaId]) ? guardado[ligaId]! : [];
-    guardado[ligaId] = [resultado, ...lista];
-    localStorage.setItem(KEY, JSON.stringify(guardado));
-  } catch {
-    // Sem storage o resultado só não sobrevive ao reload.
-  }
 }
 
 /**
