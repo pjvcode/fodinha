@@ -9,6 +9,11 @@ import { BotaoPrimario, Overlay } from './Overlay';
 export interface ProfileScreenProps {
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
+  /**
+   * Logado, o apelido da mesa é o da conta. O campo continua visível, mas
+   * travado: um campo editável que não muda nada seria pior que um travado.
+   */
+  apelidoTravado?: boolean;
   onFechar: () => void;
 }
 
@@ -20,7 +25,12 @@ export interface ProfileScreenProps {
  * assume durante a mão. Escolher marcador por nome, sem ver, seria escolher no
  * escuro.
  */
-export function ProfileScreen({ settings, onSettings, onFechar }: ProfileScreenProps) {
+export function ProfileScreen({
+  settings,
+  onSettings,
+  apelidoTravado = false,
+  onFechar,
+}: ProfileScreenProps) {
   const cor = corMarcador(settings.corMarcador);
   const paleta = { body: cor.body, edge: cor.edge };
 
@@ -39,17 +49,20 @@ export function ProfileScreen({ settings, onSettings, onFechar }: ProfileScreenP
       <label className="mt-5 flex flex-col gap-1.5">
         <span className="text-sm font-medium text-white/85">Apelido na mesa</span>
         <input
-          className="min-h-11 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70"
+          className="min-h-11 rounded-lg border border-white/15 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/70 disabled:cursor-not-allowed disabled:text-white/60"
           value={settings.apelido}
           maxLength={APELIDO_MAX}
           placeholder={APELIDO_PADRAO}
+          disabled={apelidoTravado}
           onChange={(e) => trocar({ apelido: e.target.value })}
           onBlur={(e) =>
             trocar({ apelido: e.target.value.trim() === '' ? APELIDO_PADRAO : e.target.value })
           }
         />
         <span className="text-xs text-white/45">
-          até {APELIDO_MAX} caracteres — vale a partir da próxima partida
+          {apelidoTravado
+            ? 'vem da sua conta — saia para jogar com outro nome'
+            : `até ${APELIDO_MAX} caracteres — vale a partir da próxima partida`}
         </span>
       </label>
 

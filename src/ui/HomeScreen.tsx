@@ -1,21 +1,34 @@
 import type { UiSettings } from '../state/settings';
+import type { Auth } from '../state/useAuth';
+import { ContaBadge } from './AuthScreen';
 import { ProfileButton } from './ProfileButton';
 
 /**
  * A porta de entrada. Duas escolhas: montar uma mesa do zero (Jogo
  * Personalizado) ou entrar numa das ligas de fábrica, onde o formato é fixo e o
  * placar de cada partida fica gravado.
+ *
+ * A conta fica no topo, ao lado do perfil: são as duas faces do mesmo assunto —
+ * quem eu sou na mesa e quem eu sou na liga.
  */
 export function HomeScreen({
   settings,
   onSettings,
+  apelidoTravado,
+  auth,
+  onEntrar,
   onCustom,
   onLiga,
+  onOnline,
 }: {
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
+  apelidoTravado?: boolean;
+  auth: Auth;
+  onEntrar: () => void;
   onCustom: () => void;
   onLiga: () => void;
+  onOnline: () => void;
 }) {
   return (
     <div className="mx-auto flex min-h-full max-w-xl flex-col justify-center gap-6 p-4 sm:gap-8 sm:p-6">
@@ -28,7 +41,14 @@ export function HomeScreen({
             Baralho de 40 cartas, manilha do truco, e quem erra o palpite paga.
           </p>
         </div>
-        <ProfileButton settings={settings} onSettings={onSettings} />
+        <div className="flex items-center gap-2">
+          <ContaBadge auth={auth} onEntrar={onEntrar} />
+          <ProfileButton
+            settings={settings}
+            onSettings={onSettings}
+            apelidoTravado={apelidoTravado}
+          />
+        </div>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -43,6 +63,12 @@ export function HomeScreen({
           onClick={onLiga}
           destaque
         />
+        <OpcaoCard
+          titulo="Jogar online"
+          descricao="Crie uma sala e passe o código. Assento que sobrar vira bot."
+          onClick={onOnline}
+          className="sm:col-span-2"
+        />
       </div>
     </div>
   );
@@ -53,21 +79,24 @@ function OpcaoCard({
   descricao,
   onClick,
   destaque = false,
+  className = '',
 }: {
   titulo: string;
   descricao: string;
   onClick: () => void;
   destaque?: boolean;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={[
-        'flex min-h-40 cursor-pointer flex-col items-start justify-between gap-3 rounded-2xl border p-5 text-left transition-colors',
+        'flex min-h-32 cursor-pointer flex-col items-start justify-between gap-3 rounded-2xl border p-5 text-left transition-colors',
         destaque
           ? 'border-amber-300/40 bg-amber-300/10 hover:bg-amber-300/15'
           : 'border-white/12 bg-black/25 hover:bg-white/5',
+        className,
       ].join(' ')}
     >
       <span className="text-xl font-black tracking-tight text-white sm:text-2xl">{titulo}</span>

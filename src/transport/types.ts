@@ -3,12 +3,15 @@
  *
  * A UI nunca toca no `MatchState` — ela fala com um `Transport`, que devolve
  * apenas a `PlayerView` redigida do jogador local e aceita as ações dele.
- * Hoje o host é a própria aba (`LocalTransport`); em Fase 4 um
- * `PeerJSTransport` implementa a mesma interface e nada na UI muda.
+ *
+ * São dois hosts hoje, e a UI não distingue um do outro: `LocalTransport`, em
+ * que a própria aba hospeda a partida, e `RemoteTransport`, em que o host é um
+ * Durable Object do outro lado do fio. `GameScreen` e tudo abaixo dela não
+ * mudaram uma linha quando o segundo apareceu.
  */
 
 import type { PlayerView } from '../engine/selectors';
-import type { CardId, GameEvent } from '../engine/types';
+import type { Action, CardId, GameEvent } from '../engine/types';
 
 /**
  * Ações que um jogador pode originar. Não inclui as transições do host, nem a
@@ -43,6 +46,19 @@ export interface Transport {
    * consumidor sabe exatamente de onde continuar.
    */
   getEventLog(): readonly LoggedEvent[];
+  /**
+   * Toda ação aceita da partida, na ordem — a receita para reproduzi-la do
+   * zero a partir da `config`.
+   *
+   * É o que o servidor confere ao registrar um resultado de liga: ele roda o
+   * mesmo `reduce()` sobre esta lista e chega ao placar por conta própria, em
+   * vez de acreditar no que o cliente afirma.
+   *
+   * Opcional porque só quem é o host da partida tem como saber: num transporte
+   * de rede o estado autoritativo está do outro lado, e quem grava o resultado
+   * é o próprio servidor.
+   */
+  getActionLog?(): readonly Action[];
   subscribe(listener: () => void): () => void;
   dispatch(action: ClientAction): void;
   dispose(): void;

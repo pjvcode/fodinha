@@ -89,8 +89,29 @@ export function RoundSummary({ view, onContinue }: { view: PlayerView; onContinu
   );
 }
 
+/**
+ * Estado do registro do resultado na liga.
+ *
+ * Existe porque uma partida de liga que termina sem ser registrada, e sem
+ * ninguém avisar, é a maneira mais rápida de o jogador deixar de confiar na
+ * classificação.
+ */
+export type RegistroLiga =
+  | { estado: 'inativo' }
+  | { estado: 'enviando' }
+  | { estado: 'registrado' }
+  | { estado: 'falhou'; erro: string };
+
 /** Tela final: quem venceu e o placar fechado. */
-export function MatchOver({ view, onRestart }: { view: PlayerView; onRestart: () => void }) {
+export function MatchOver({
+  view,
+  registro = { estado: 'inativo' },
+  onRestart,
+}: {
+  view: PlayerView;
+  registro?: RegistroLiga;
+  onRestart: () => void;
+}) {
   const elimination = view.config.scoringMode === 'elimination';
   const rows = everyone(view).sort((a, b) =>
     elimination
@@ -130,6 +151,21 @@ export function MatchOver({ view, onRestart }: { view: PlayerView; onRestart: ()
           </li>
         ))}
       </ol>
+
+      {registro.estado !== 'inativo' && (
+        <p
+          className={[
+            'mt-3 rounded-lg px-3 py-2 text-xs',
+            registro.estado === 'falhou'
+              ? 'bg-red-500/15 text-red-200'
+              : 'bg-black/25 text-white/55',
+          ].join(' ')}
+        >
+          {registro.estado === 'enviando' && 'Registrando na liga…'}
+          {registro.estado === 'registrado' && 'Resultado registrado na liga.'}
+          {registro.estado === 'falhou' && `Não foi para a liga: ${registro.erro}`}
+        </p>
+      )}
 
       <BotaoPrimario onClick={onRestart} className="mt-5 w-full">
         Nova partida

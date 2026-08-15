@@ -1,0 +1,13 @@
+{
+  // O Worker compartilha o rigor do app, mas não o ambiente: não existe `window`
+  // nem `document` lá, então `DOM` fica de fora da `lib` de propósito. É esse
+  // recorte que faz o `tsc` acusar aqui um `localStorage` que só o browser tem,
+  // em vez de deixar quebrar em produção.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "noEmit": true
+  },
+  "include": ["server"]
+}

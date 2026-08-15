@@ -2,9 +2,9 @@
  * Host local: a própria aba mantém o `MatchState` autoritativo, roda os bots e
  * publica para a UI apenas a `PlayerView` do jogador local.
  *
- * A separação não é decorativa — é ela que faz o multiplayer online da Fase 4
- * ser um plugue: um `PeerJSTransport` mantém o mesmo estado no host e manda a
- * view redigida de cada peer pela rede, sem que a UI perceba a diferença.
+ * A separação não é decorativa — é ela que fez o multiplayer online ser um
+ * plugue: `server/room.ts` mantém o mesmo estado num Durable Object e manda a
+ * view redigida de cada jogador pela rede, sem que a UI perceba a diferença.
  */
 
 import { nextAutoAction } from '../bots/runner';
@@ -32,6 +32,8 @@ export function createLocalTransport(options: LocalTransportOptions): Transport 
   let view: PlayerView = playerView(state, localPlayerId);
   let lastEvents: GameEvent[] = [];
   let eventLog: LoggedEvent[] = [];
+  /** Toda ação aceita, na ordem. Cresce o tamanho de uma partida e para aí. */
+  const actionLog: Action[] = [];
   let seq = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let disposed = false;
@@ -94,9 +96,19 @@ export function createLocalTransport(options: LocalTransportOptions): Transport 
 
   function apply(action: Action): void {
     const result = reduce(state, action);
+    const recusada = result.events.some((e) => e.t === 'INVALID_ACTION');
+
     state = result.state;
     lastEvents = result.events;
     view = playerView(state, localPlayerId);
+
+    // O log de ações é o que permite ao servidor conferir o resultado de uma
+    // partida de liga: com a config e esta lista ele roda o mesmo `reduce()` e
+    // chega ao mesmo placar, em vez de acreditar no que o cliente afirma.
+    //
+    // Ação recusada fica de fora: ela não mexeu no estado, e guardá-la só faria
+    // o replay repetir uma rejeição.
+    if (!recusada) actionLog.push(action);
 
     // O log numerado é o que permite reagir a eventos sem perder nenhum quando
     // duas transições caem entre dois renders, e sem processar em dobro sob
@@ -137,6 +149,7 @@ export function createLocalTransport(options: LocalTransportOptions): Transport 
     getView: () => view,
     getEvents: () => lastEvents,
     getEventLog: () => eventLog,
+    getActionLog: () => actionLog,
 
     subscribe(listener) {
       listeners.add(listener);

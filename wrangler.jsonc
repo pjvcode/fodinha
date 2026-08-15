@@ -1,18 +1,52 @@
 {
-  // Deploy do jogo como Worker de assets estáticos.
+  // Deploy do jogo. O Worker serve os assets estáticos que o Vite gerou e, em
+  // `/api/*`, roda o código de servidor.
   //
-  // Não há `main`: o jogo é 100% client-side, então não existe código de
-  // servidor a executar — o Worker só serve o que o Vite gerou. É aqui também
-  // que o multiplayer da Fase 4 entraria, adicionando um `main` e o binding do
-  // Durable Object da sala, sem trocar de plataforma.
+  // A mesa continua inteira no cliente: o servidor só existe para o que precisa
+  // ser comum a todo mundo — contas e liga. O multiplayer da Fase 4 entra aqui
+  // adicionando o binding do Durable Object da sala, sem trocar de plataforma.
   "name": "fodinha",
+  "main": "server/index.ts",
   "compatibility_date": "2026-08-13",
+
   "assets": {
     "directory": "./dist",
 
     // A UI roteia por `useState` em `src/ui/App.tsx`, não por URL. Ainda assim
     // o modo SPA é o correto: qualquer caminho que alguém digite ou favorite
     // devolve o `index.html` com 200, em vez de um 404 do Worker.
-    "not_found_handling": "single-page-application"
-  }
+    "not_found_handling": "single-page-application",
+
+    // Sem isto o `not_found_handling` acima engoliria a API: `/api/auth/me` não
+    // é um arquivo em `dist/`, então cairia no `index.html` com 200 em vez de
+    // chegar ao Worker. A lista inverte a prioridade só onde precisa.
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Uma sala de multiplayer = um Durable Object, endereçado pelo código dela.
+  // Objeto único e serializado por natureza: não há duas jogadas chegando ao
+  // mesmo estado ao mesmo tempo, que é a garantia de que um host precisa.
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "RoomDO" }]
+  },
+
+  "migrations": [
+    {
+      "tag": "v1",
+      // `new_sqlite_classes` e não `new_classes`: é o backend atual e o único
+      // disponível nos planos gratuitos.
+      "new_sqlite_classes": ["RoomDO"]
+    }
+  ],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "fodinha",
+      // O id não é segredo: sozinho ele não dá acesso a nada. Quem autoriza é a
+      // credencial da conta, e é por isso que ele pode viver no repositório.
+      "database_id": "4c3ca726-f0ba-458e-98e0-db3add510304",
+      "migrations_dir": "server/migrations"
+    }
+  ]
 }

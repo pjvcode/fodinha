@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev:api": "wrangler dev --port 8787",
+    "db:local": "wrangler d1 migrations apply fodinha --local",
+    "build": "tsc -b && npm run typecheck:server && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck:server",
+    "typecheck:server": "tsc -p tsconfig.server.json --noEmit",
     "sim": "tsx scripts/sim.ts"
   },
   "dependencies": {
@@ -17,6 +20,7 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260814.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",

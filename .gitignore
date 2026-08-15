@@ -7,3 +7,6 @@ coverage
 .DS_Store
 *.log
 *.tsbuildinfo
+
+# Estado local do wrangler (D1 e Durable Objects em disco).
+.wrangler

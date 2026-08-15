@@ -8,6 +8,11 @@
 import { COR_PADRAO, MARCADOR_PADRAO, isCorId, isMarcadorId } from '../ui/casino/markers';
 import type { CorId, MarcadorId } from '../ui/casino/markers';
 import type { Registro } from '../theater/triggers';
+import { APELIDO_MAX, APELIDO_PADRAO, normalizarApelido } from './apelido';
+
+// A regra do apelido mora em `apelido.ts` — o servidor também precisa dela, e
+// não tem `localStorage`. Reexportado para quem já importava daqui.
+export { APELIDO_MAX, APELIDO_PADRAO, normalizarApelido };
 
 export interface UiSettings {
   registro: Registro;
@@ -26,11 +31,6 @@ export const RITMOS: { value: number; label: string; hint: string }[] = [
   { value: 1.5, label: 'Cinema', hint: 'cada carta com seu momento' },
 ];
 
-export const APELIDO_PADRAO = 'Você';
-
-/** Cabe na plaqueta do assento sem truncar em mesa cheia. */
-export const APELIDO_MAX = 14;
-
 export const SETTINGS_PADRAO: UiSettings = {
   registro: 'solto',
   ritmo: 1,
@@ -40,12 +40,6 @@ export const SETTINGS_PADRAO: UiSettings = {
 };
 
 const KEY = 'fodinha.ui';
-
-/** Sem nome, o jogador vira "Você" de novo — a mesa nunca fica com assento mudo. */
-export function normalizarApelido(bruto: string): string {
-  const limpo = bruto.trim().slice(0, APELIDO_MAX);
-  return limpo === '' ? APELIDO_PADRAO : limpo;
-}
 
 /**
  * Cada campo é validado por conta própria e cai no padrão se vier estranho.

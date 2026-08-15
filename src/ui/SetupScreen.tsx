@@ -32,12 +32,20 @@ const selectClass =
 export interface SetupScreenProps {
   settings: UiSettings;
   onSettings: (s: UiSettings) => void;
+  /** Logado, o apelido da mesa vem da conta e o perfil não o edita. */
+  apelidoTravado?: boolean;
   onStart: (config: GameConfig) => void;
   /** Volta para a home. */
   onVoltar: () => void;
 }
 
-export function SetupScreen({ settings, onSettings, onStart, onVoltar }: SetupScreenProps) {
+export function SetupScreen({
+  settings,
+  onSettings,
+  apelidoTravado,
+  onStart,
+  onVoltar,
+}: SetupScreenProps) {
   const [numPlayers, setNumPlayers] = useState(4);
   const [nivel, setNivel] = useState<BotLevel>('medium');
   const [modo, setModo] = useState<ScoringMode>('penalty');
@@ -88,7 +96,11 @@ export function SetupScreen({ settings, onSettings, onStart, onVoltar }: SetupSc
           </p>
         </div>
 
-        <ProfileButton settings={settings} onSettings={onSettings} />
+        <ProfileButton
+          settings={settings}
+          onSettings={onSettings}
+          apelidoTravado={apelidoTravado}
+        />
       </header>
 
       <div className="grid gap-4 rounded-2xl border border-white/10 bg-black/25 p-4 sm:grid-cols-2 sm:p-5">
