@@ -43,9 +43,9 @@
     {
       "binding": "DB",
       "database_name": "fodinha",
-      // Substituído pelo id real do `wrangler d1 create fodinha`. O `--dry-run`
-      // do CI valida a forma do arquivo e não consulta o banco.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // O id não é segredo: sozinho ele não dá acesso a nada. Quem autoriza é a
+      // credencial da conta, e é por isso que ele pode viver no repositório.
+      "database_id": "4c3ca726-f0ba-458e-98e0-db3add510304",
       "migrations_dir": "server/migrations"
     }
   ]

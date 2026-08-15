@@ -325,18 +325,21 @@ O mesmo Worker serve os assets estáticos e, em `/api/*`, roda o servidor.
 tráfego sem teto no plano gratuito e porque é o mesmo deploy onde o D1 e os
 Durable Objects vivem — contas, liga e salas não precisaram de outra plataforma.
 
-### Antes do primeiro deploy
+### O banco
 
-O banco precisa existir e as migrações precisam rodar:
+O banco `fodinha` já existe e o `database_id` no `wrangler.jsonc` é o dele. O id
+não é segredo — sozinho não dá acesso a nada, quem autoriza é a credencial da
+conta —, então ele vive no repositório.
+
+As migrações são aplicadas com:
 
 ```bash
-npx wrangler d1 create fodinha          # copie o id para o wrangler.jsonc
 npx wrangler d1 migrations apply fodinha --remote
 ```
 
-O `database_id` no `wrangler.jsonc` vem com um valor de espaço reservado: o
-`--dry-run` do CI valida a forma do arquivo e não consulta o banco, mas o deploy
-de verdade precisa do id real.
+Num banco novo, `npx wrangler d1 create <nome>` imprime o id a colocar no
+`wrangler.jsonc`. O `--dry-run` do CI valida a forma do arquivo sem consultar a
+Cloudflare, então um id errado só aparece no deploy de verdade.
 
 ### Configuração
 
